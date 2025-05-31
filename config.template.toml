@@ -1,3 +1,7 @@
+[llm]
+model = "openai/qwen-plus-latest"
+api_key = "sk-623e1ca58de14377bbc3e89483408955"
+base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 ###################### OpenHands Configuration Example ######################
 #
 # All settings have default values, so you only need to uncomment and

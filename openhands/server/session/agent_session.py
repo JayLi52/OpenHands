@@ -121,12 +121,17 @@ class AgentSession:
         finished = False  # For monitoring
         runtime_connected = False
 
+        self.logger.info('Starting agent session', extra={'runtime_name': runtime_name})
+
         custom_secrets_handler = UserSecrets(
             custom_secrets=custom_secrets if custom_secrets else {}
         )
 
         try:
+            self.logger.info('Creating security analyzer')
             self._create_security_analyzer(config.security.security_analyzer)
+
+            self.logger.info('Creating runtime', extra={'runtime_name': runtime_name})
             runtime_connected = await self._create_runtime(
                 runtime_name=runtime_name,
                 config=config,
@@ -140,14 +145,18 @@ class AgentSession:
             repo_directory = None
             if self.runtime and runtime_connected and selected_repository:
                 repo_directory = selected_repository.split('/')[-1]
+                self.logger.info('Repository directory set', extra={'repo_directory': repo_directory})
 
             if git_provider_tokens:
+                self.logger.info('Setting up git provider tokens')
                 provider_handler = ProviderHandler(provider_tokens=git_provider_tokens)
                 await provider_handler.set_event_stream_secrets(self.event_stream)
 
             if custom_secrets:
+                self.logger.info('Setting up custom secrets')
                 custom_secrets_handler.set_event_stream_secrets(self.event_stream)
 
+            self.logger.info('Creating memory')
             self.memory = await self._create_memory(
                 selected_repository=selected_repository,
                 repo_directory=repo_directory,
@@ -158,9 +167,11 @@ class AgentSession:
             # NOTE: this needs to happen before controller is created
             # so MCP tools can be included into the SystemMessageAction
             if self.runtime and runtime_connected and agent.config.enable_mcp:
+                self.logger.info('Adding MCP tools to agent')
                 await add_mcp_tools_to_agent(agent, self.runtime, self.memory, config)
 
             if replay_json:
+                self.logger.info('Running replay from JSON')
                 initial_message = self._run_replay(
                     initial_message,
                     replay_json,
@@ -172,6 +183,7 @@ class AgentSession:
                     agent_configs,
                 )
             else:
+                self.logger.info('Creating controller')
                 self.controller = self._create_controller(
                     agent,
                     config.security.confirmation_mode,
@@ -183,12 +195,14 @@ class AgentSession:
 
             if not self._closed:
                 if initial_message:
+                    self.logger.info('Adding initial message to event stream')
                     self.event_stream.add_event(initial_message, EventSource.USER)
                     self.event_stream.add_event(
                         ChangeAgentStateAction(AgentState.RUNNING),
                         EventSource.ENVIRONMENT,
                     )
                 else:
+                    self.logger.info('Setting agent state to awaiting user input')
                     self.event_stream.add_event(
                         ChangeAgentStateAction(AgentState.AWAITING_USER_INPUT),
                         EventSource.ENVIRONMENT,
