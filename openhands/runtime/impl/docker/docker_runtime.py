@@ -283,6 +283,21 @@ class DockerRuntime(ActionExecutionClient):
         use_host_network = self.config.sandbox.use_host_network
         network_mode: str | None = 'host' if use_host_network else None
 
+        # 获取 dev container 的网络
+        if not use_host_network:
+            try:
+                # 获取当前 dev container 的名称
+                import subprocess
+                result = subprocess.run(['hostname'], capture_output=True, text=True)
+                dev_container_name = result.stdout.strip()
+
+                dev_container = self.docker_client.containers.get(dev_container_name)
+                if dev_container:
+                    network_mode = list(dev_container.attrs['NetworkSettings']['Networks'].keys())[0]
+                    self.log('debug', f'Using network from dev container: {network_mode}')
+            except Exception as e:
+                self.log('warning', f'Failed to get dev container network: {e}')
+
         # Initialize port mappings
         port_mapping: dict[str, list[dict[str, str]]] | None = None
         if not use_host_network:

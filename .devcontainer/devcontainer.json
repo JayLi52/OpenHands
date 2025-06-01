@@ -12,4 +12,19 @@
 		"ghcr.io/devcontainers/features/node:1": {},
 	},
 	"postCreateCommand": ".devcontainer/setup.sh",
+	// 在容器内部安装 VS Code 扩展
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",       // Python 扩展 (包含Pylance)
+                "ms-python.vscode-pylance" // Pylance 语言服务器 (推荐)
+                // 其他你需要的扩展，例如 "ms-azuretools.vscode-docker"
+            ]
+        }
+    },
+    // 添加端口映射
+    "forwardPorts": [
+        8000,   // 后端服务端口
+        5678    // 调试端口
+    ]
 }
